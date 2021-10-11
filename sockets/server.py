@@ -3,8 +3,11 @@ import socket
 import threading
 
 PORT = 5050
-SERVER = "192.168.0.5"
-SERVER2 = socket.gethostbyname(socket.gethostname())
+HEADER = 64
+FORMAT = 'utf-8'
+#SERVER = "192.168.0.5"
+SERVER = socket.gethostbyname(socket.gethostname())
+DISCONNET_MESSAGE = "!DISCONNECTING"
 
 #print(SERVER)
 #print('\n')
@@ -27,10 +30,41 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # socket.socket() is
 server.bind(ADDR)  # bind the socket to the address.. so anything which connnects to that addrss.. will hit this socket 
 
 
-def handle_client(conn, addr):
-    pass
+def handle_client(conn, addr):  # conn & addr would be the parameters
+    print(f' [NEW CONNECTION]: {addr} connected!!')
+    connected= True
+    while connected:
+        msg_length = conn.recv(HEADER).decode(FORMAT)   # just like server.accept() .. conn.recv() are BLOCKING lines of code.. so we do not pass these lines till the event they represent occur
+        if msg_length:
+            msg_length= int(msg_length)
+            message= conn.recv(msg_length).decode(FORMAT)
+            if message == DISCONNET_MESSAGE:
+                #break
+                connected= False
+
+            print(f' \n [{addr}] {msg}')
+
+        conn.close()
+
+        
+def start():
+    # make the server listen to any connections & then handle those connections by passing them to handle_client()
+
+    server.listen()
+    print(f' [LISTENING] Server is listening on {SERVER}')
+    while True:
+        conn, addr = server.accept()  # server.accept() returns a tuple representing a new connection & the address of the client
+                                      # serer.accept() BLOCKS .. we'll wait till a new connection occurs  
+                                      # once a new connection occurs, start a new thread to handle the connection
+        
+        thread = threading.Thread(target= handle_client, args=(conn, addr))  # so when a new connection occurs, pass that connection to handle_client & pass the arguments
+        thread.start()
+
+        print(f'\n [ACTIVE CONNECTIONS]: {threading.activeCount()-1}')  # -1 to discount the main thread running on start()
 
 
+print(" [STARTING] server is starting...") 
+start()
 
 
                             
